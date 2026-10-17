@@ -1,0 +1,83 @@
+[package]
+name = "open-heron-browser"
+version = "1.0.0"
+edition = "2021"
+description = "OpenHeronBrowser (OHB) - a from-scratch web browser built on the HeronBrowser architecture"
+license = "Apache-2.0"
+
+[[bin]]
+name = "ohb"
+path = "src/main.rs"
+
+[dependencies]
+ohb-crypto = { path = "crates/ohb-crypto" }
+winit = "0.30"
+softbuffer = "0.4"
+tiny-skia = "0.12"
+rustybuzz = "0.20"
+ttf-parser = "0.25"
+fontdb = "0.24"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+ring = "0.17"
+webpki-roots = "1"
+rustls-native-certs = "0.8"
+url = "2"
+flate2 = "1"
+brotli-decompressor = "5"
+ruzstd = "0.8"
+brotli = { version = "8", default-features = false, features = ["std"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
+resvg = { version = "0.48", default-features = false, features = ["text", "raster-images"] }
+roxmltree = "0.20"
+rustc-hash = "2"
+wasmi = { version = "2", default-features = false, features = ["stable", "std", "validate", "simd", "auto-dispatch"] }
+boa_engine = { version = "0.22", default-features = false, features = ["annex-b", "float16"] }
+wuff = "0.2"
+arboard = { version = "3", default-features = false }
+memmap2 = "0.9"
+loona-hpack = "0.4"
+serde_json = "1"
+mimalloc = { version = "0.1", default-features = false, features = ["v2"] }
+regress = "0.12"
+futures-lite = "2"
+jiff = "0.2"
+icu_normalizer = "2"
+unicode-segmentation = "1"
+svgtypes = "0.16"
+encoding_rs = "0.8"
+# AVIF: HEIF container parsing and a pure-Rust AV1 decoder (no assembly).
+avif-parse = "2.1"
+rav1d = { version = "1.1", default-features = false, features = ["bitdepth_8", "bitdepth_16"] }
+# PDF viewer: a pure-Rust PDF rasterizer.
+hayro = "0.8"
+symphonia = { version = "0.5", default-features = false, features = ["adpcm", "flac", "mkv", "ogg", "pcm", "vorbis", "wav", "mp3", "aac", "isomp4", "alac"] }
+
+# Boa's scope analysis lost `this` in arrow functions nested in other arrow
+# functions; vendor/boa_ast carries the fix (see escape_this_in_enclosing_function_scope).
+# vendor/boa_engine: names compiled before a later script's global let/const
+# now resolve to that binding (see find_runtime_binding, "OHB patch").
+[patch.crates-io]
+boa_ast = { path = "vendor/boa_ast" }
+boa_engine = { path = "vendor/boa_engine" }
+# vendor/boa_gc: heap-proportional collection threshold, GC time stats ("OHB patch").
+boa_gc = { path = "vendor/boa_gc" }
+# vendor/boa_string: rope strings for long concatenations ("OHB patch").
+boa_string = { path = "vendor/boa_string" }
+# vendor/boa_parser: faster lexing (ASCII identifier checks, cheaper token peeking; "OHB patch").
+boa_parser = { path = "vendor/boa_parser" }
+# vendor/url: current URL Standard host and opaque-path rules ("OHB patch").
+url = { path = "vendor/url" }
+
+[profile.dev]
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
+# Whole-program optimization: the JS interpreter's hot paths cross crates
+# (boa_engine, boa_gc, the browser) and gain ~25-30% from it.
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "unwind"
