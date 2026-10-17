@@ -1,0 +1,28 @@
+#include <winver.h>
+1 ICON "ohb.ico"
+1 24 "ohb.manifest"
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Heronetic"
+      VALUE "LegalCopyright", "Copyright 2026 Marissa Tanner, Heronetic. Apache License 2.0."
+      VALUE "FileDescription", "OpenHeronBrowser (Demo)"
+      VALUE "FileVersion", "1.0.0"
+      VALUE "InternalName", "ohb"
+      VALUE "OriginalFilename", "OpenHeronBrowser.exe"
+      VALUE "ProductName", "OpenHeronBrowser"
+      VALUE "ProductVersion", "1.0.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=OpenHeronBrowser
+GenericName=Web Browser
+Comment=A demo of a from-scratch web engine by Heronetic
+Exec=ohb %U
+Icon=openheronbrowser
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
+StartupWMClass=ohb

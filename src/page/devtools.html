@@ -1,0 +1,720 @@
+<!doctype html>
+<!-- Copyright 2026 Marissa Tanner, Heronetic. SPDX-License-Identifier: Apache-2.0 -->
+<html><head><meta charset="utf-8"><title>DevTools</title>
+<style>
+:root { color-scheme: light; --line: #d9dde3; --bg: #ffffff; --bar: #f1f3f4; --sel: #cfe8fc; --hover: #eef3fb; --mono: ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: #202124; font: 12px system-ui, sans-serif; }
+#app { display: flex; flex-direction: column; height: 100%; }
+#bar { display: flex; align-items: stretch; height: 28px; flex: none; background: var(--bar); border-bottom: 1px solid var(--line); }
+#bar button { border: 0; background: transparent; font: inherit; color: #3c4043; padding: 0 12px; height: 27px; cursor: default; }
+#bar button:hover { background: #e3e6ea; }
+#bar .tab.on { color: #1a73e8; box-shadow: inset 0 -2px #1a73e8; }
+#bar .icon { width: 30px; padding: 0; font-size: 14px; }
+#bar .icon.on { color: #1a73e8; background: #dbe7fb; }
+#bar .sep { width: 1px; background: var(--line); margin: 5px 4px; }
+#bar .grow { flex: 1; }
+#bar .info { color: #5f6368; padding: 0 10px; line-height: 27px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+.panel { flex: 1; min-height: 0; display: none; }
+.panel.on { display: flex; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.scroll { overflow: auto; }
+.split { display: flex; flex: 1; min-width: 0; min-height: 0; }
+.side { width: 340px; flex: none; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.subbar { display: flex; align-items: center; gap: 6px; height: 26px; flex: none; border-bottom: 1px solid var(--line); padding: 0 6px; background: #fafbfc; }
+.subbar input { font: inherit; height: 20px; border: 1px solid #c8ccd2; border-radius: 3px; padding: 0 6px; min-width: 0; }
+.subbar button, .btn { font: inherit; height: 20px; border: 1px solid #c8ccd2; background: white; border-radius: 3px; padding: 0 8px; color: #3c4043; }
+.subbar .tab2 { border: 0; background: transparent; height: 25px; border-radius: 0; }
+.subbar .tab2.on { box-shadow: inset 0 -2px #1a73e8; color: #1a73e8; }
+/* Elements */
+#tree { flex: 1; min-width: 0; padding: 4px 0 30px 0; white-space: nowrap; }
+.row { padding: 0 8px 0 0; line-height: 17px; cursor: default; }
+.row:hover { background: var(--hover); }
+.row.sel { background: var(--sel); }
+.tw { display: inline-block; width: 12px; color: #727272; font-size: 9px; text-align: center; }
+.tag { color: #881280; }
+.an { color: #994500; }
+.av { color: #1a1aa6; }
+.txt { color: #202124; }
+.cmt { color: #236e25; }
+.dt { color: #8a8a8a; }
+#crumbs { height: 22px; flex: none; border-top: 1px solid var(--line); white-space: nowrap; overflow: hidden; padding: 3px 6px; color: #444; background: #fafbfc; }
+#crumbs span { padding: 0 4px; }
+#crumbs span:hover { background: var(--hover); }
+.rule { border-bottom: 1px solid #eceef1; padding: 4px 8px 6px 8px; }
+.rule .sel { color: #202124; }
+.rule .src { float: right; color: #5f6368; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rule .media { color: #5f6368; }
+.decl { padding-left: 16px; white-space: pre-wrap; word-break: break-all; }
+.decl .k { color: #c80000; }
+.decl.over { text-decoration: line-through; opacity: 0.55; }
+.ua { color: #5f6368; font-style: italic; }
+.comp { display: flex; padding: 1px 8px; }
+.comp .k { color: #c80000; width: 45%; flex: none; overflow: hidden; text-overflow: ellipsis; }
+.comp .v { color: #202124; word-break: break-all; }
+#boxm { margin: 10px auto; width: 300px; text-align: center; font-size: 10px; }
+#boxm div { border: 1px dashed #888; padding: 2px 8px; position: relative; }
+#boxm .lbl { position: absolute; left: 4px; top: 1px; color: #555; }
+#boxm .m { background: #f9cc9d; } #boxm .b { background: #fddd9b; border-style: solid; border-color: #000; } #boxm .p { background: #c3d08b; } #boxm .c { background: #8cb6c0; padding: 6px; border-style: solid; border-color: #808080; }
+#boxm .t, #boxm .bt { display: block; height: 14px; }
+#boxm .mid { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.edit { width: 100%; height: 160px; font-family: var(--mono); font-size: 12px; border: 1px solid #c8ccd2; }
+/* Console */
+#console { flex-direction: column; }
+#log { flex: 1; min-height: 0; }
+.msg { border-bottom: 1px solid #f0f0f0; padding: 3px 8px 3px 22px; position: relative; white-space: pre-wrap; word-break: break-word; line-height: 16px; }
+.msg::before { position: absolute; left: 7px; top: 3px; font-size: 10px; }
+.msg.warn { background: #fffbe5; color: #5c3c00; border-color: #fff5c2; }
+.msg.warn::before { content: "▲"; color: #e2a600; }
+.msg.error { background: #fff0f0; color: #a50e0e; border-color: #ffd6d6; }
+.msg.error::before { content: "✕"; color: #d93025; font-weight: bold; }
+.msg.info::before { content: "ℹ"; color: #1a73e8; }
+.msg.input { color: #1a73e8; }
+.msg.input::before { content: "›"; font-size: 14px; top: 1px; color: #1a73e8; }
+.msg.result::before { content: "‹·"; color: #9aa0a6; top: 3px; left: 4px; }
+.msg.group { font-weight: bold; }
+.msg .time { float: right; color: #9aa0a6; font-size: 11px; margin-left: 8px; }
+.v-string { color: #c41a16; } .msg > .v-string.top { color: inherit; }
+.v-number, .v-boolean, .v-bigint { color: #1a1aa6; }
+.v-null, .v-undefined { color: #80868b; }
+.v-symbol { color: #c41a16; }
+.v-function { color: #13139c; font-style: italic; }
+.v-node { color: #881280; text-decoration: underline dotted; cursor: pointer; }
+.v-regexp { color: #c41a16; }
+.obj > .head { cursor: default; }
+.obj > .head .tw { width: 10px; }
+.obj > .kids { padding-left: 14px; display: none; }
+.obj.open > .kids { display: block; }
+.prop .k { color: #881280; }
+.prop .k.int { color: #5f6368; }
+#prompt { display: flex; align-items: center; border-top: 1px solid var(--line); flex: none; min-height: 26px; }
+#prompt span { color: #1a73e8; padding: 0 6px 0 9px; font-size: 14px; }
+#prompt input { flex: 1; border: 0; outline: none; font-family: var(--mono); font-size: 12px; height: 24px; background: transparent; }
+/* Sources */
+#files { width: 260px; flex: none; border-right: 1px solid var(--line); }
+.file { padding: 3px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file:hover { background: var(--hover); }
+.file.sel { background: var(--sel); }
+.file .k { display: inline-block; width: 16px; color: #e8710a; font-weight: bold; }
+.file .k.css { color: #1a73e8; } .file .k.doc { color: #5f6368; }
+#code { flex: 1; min-width: 0; position: relative; }
+#codeinner { position: relative; }
+#codewin { position: absolute; left: 0; right: 0; }
+.ln { white-space: pre; line-height: 16px; height: 16px; }
+.ln .no { display: inline-block; width: 52px; padding-right: 10px; text-align: right; color: #9aa0a6; background: #f5f6f7; border-right: 1px solid #e3e5e8; margin-right: 8px; }
+.kw { color: #aa0d91; } .str { color: #c41a16; } .com { color: #236e25; } .num { color: #1c00cf; }
+/* Network */
+#net { flex-direction: column; }
+#nettable { flex: 1; min-height: 0; }
+table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+th { text-align: left; font-weight: normal; color: #5f6368; background: #f8f9fa; border-bottom: 1px solid var(--line); border-right: 1px solid #eceef1; padding: 3px 6px; position: sticky; top: 0; }
+td { border-bottom: 1px solid #f1f2f4; border-right: 1px solid #f1f2f4; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+tr:hover td { background: var(--hover); }
+tr.sel td { background: var(--sel); }
+tr.fail td { color: #d93025; }
+.wf { position: relative; height: 10px; }
+.wf i { position: absolute; top: 1px; height: 8px; background: #1a73e8; border-radius: 1px; min-width: 2px; }
+#netfoot { flex: none; border-top: 1px solid var(--line); padding: 4px 8px; color: #5f6368; background: #fafbfc; white-space: nowrap; overflow: hidden; }
+#netdetail { flex: none; max-height: 40%; border-top: 1px solid var(--line); padding: 6px 10px; display: none; word-break: break-all; }
+#netdetail b { display: inline-block; width: 110px; color: #5f6368; font-weight: normal; }
+.empty { color: #80868b; padding: 16px; }
+</style></head>
+<body><div id="app">
+<div id="bar">
+  <button class="icon" id="pick" title="Select an element in the page to inspect it (Ctrl+Shift+C)">⬚</button>
+  <div class="sep"></div>
+  <button class="tab on" data-p="elements">Elements</button>
+  <button class="tab" data-p="console">Console</button>
+  <button class="tab" data-p="sources">Sources</button>
+  <button class="tab" data-p="network">Network</button>
+  <div class="grow"></div>
+  <div class="info" id="pageurl"></div>
+  <button class="icon" id="close" title="Close DevTools">✕</button>
+</div>
+
+<div class="panel on" id="elements">
+  <div class="split" style="flex-direction:column">
+    <div class="subbar"><input id="esearch" placeholder="Find by string or selector" style="flex:1"><span id="ehits" class="dt"></span><button id="eprev">▲</button><button id="enext">▼</button></div>
+    <div id="tree" class="scroll mono"></div>
+    <div id="crumbs" class="mono"></div>
+  </div>
+  <div class="side">
+    <div class="subbar"><button class="tab2 on" data-s="styles">Styles</button><button class="tab2" data-s="computed">Computed</button><button class="tab2" data-s="html">Edit HTML</button></div>
+    <div id="side-styles" class="scroll mono" style="flex:1"></div>
+    <div id="side-computed" class="scroll mono" style="flex:1;display:none"></div>
+    <div id="side-html" class="scroll" style="flex:1;display:none;padding:8px"></div>
+  </div>
+</div>
+
+<div class="panel" id="console">
+  <div class="subbar"><button id="cclear" title="Clear console">⊘</button><select id="clevel" style="font:inherit"><option value="all">All levels</option><option value="error">Errors</option><option value="warn">Warnings</option><option value="info">Info</option></select><input id="cfilter" placeholder="Filter" style="flex:1"></div>
+  <div id="log" class="scroll mono"></div>
+  <div id="prompt"><span>›</span><input id="cin" autocomplete="off" spellcheck="false"></div>
+</div>
+
+<div class="panel" id="sources">
+  <div id="files" class="scroll"></div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="subbar"><span id="srcname" class="dt" style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></span><button id="pretty" title="Pretty-print">{ }</button></div>
+    <div id="code" class="scroll mono"><div id="codeinner"><div id="codewin"></div></div></div>
+  </div>
+</div>
+
+<div class="panel" id="network">
+  <div class="split" style="flex-direction:column">
+    <div class="subbar"><input id="nfilter" placeholder="Filter" style="width:200px"><select id="nkind" style="font:inherit"><option value="">All</option><option>document</option><option>script</option><option>stylesheet</option><option>image</option><option>font</option><option>fetch</option><option>iframe</option></select><div style="flex:1"></div><button id="nrefresh">Refresh</button></div>
+    <div id="nettable" class="scroll"></div>
+    <div id="netdetail" class="scroll mono"></div>
+    <div id="netfoot"></div>
+  </div>
+</div>
+</div>
+<script>
+'use strict';
+const $ = (s, r) => (r || document).querySelector(s);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+const pending = new Map();
+function call(method, params) {
+  return new Promise((resolve) => {
+    if (typeof ohbDevtools === 'undefined') { resolve({ error: 'not a DevTools page' }); return; }
+    const id = ohbDevtools.send(method, params || {});
+    if (id < 0) { resolve({ error: 'the inspected tab is gone' }); return; }
+    pending.set(id, resolve);
+  });
+}
+window.__ohb_devtools_client = function (json) {
+  let m; try { m = JSON.parse(json); } catch (_) { return; }
+  if (m.kind === 'response') { const r = pending.get(m.id); if (r) { pending.delete(m.id); r(m.result || {}); } }
+  else if (m.kind === 'event' && m.event) onEvent(m.event);
+};
+
+// ---------------------------------------------------------------- tabs
+let panel = 'elements';
+function show(p) {
+  panel = p;
+  for (const b of document.querySelectorAll('#bar .tab')) b.classList.toggle('on', b.dataset.p === p);
+  for (const d of document.querySelectorAll('.panel')) d.classList.toggle('on', d.id === p);
+  if (p === 'sources') loadSources();
+  if (p === 'network') loadNetwork();
+  if (p === 'console') setTimeout(() => { $('#cin').focus(); scrollLogEnd(); }, 0);
+}
+for (const b of document.querySelectorAll('#bar .tab')) b.addEventListener('click', () => show(b.dataset.p));
+$('#close').addEventListener('click', () => { call('detach'); ohbDevtools.close(); });
+let picking = false;
+function setPicking(on) { picking = on; $('#pick').classList.toggle('on', on); call('pick', { on }); if (on && panel !== 'elements') show('elements'); }
+$('#pick').addEventListener('click', () => setPicking(!picking));
+
+// ---------------------------------------------------------------- elements
+const rows = new Map();   // node id -> { info, row, kids, open, loaded }
+let selected = null;
+function esc(s) { return String(s); }
+function rowLabel(info, open) {
+  const r = el('div', 'row');
+  r.dataset.id = info.id;
+  const tw = el('span', 'tw', info.n ? (open ? '▼' : '▶') : '');
+  r.appendChild(tw);
+  if (info.type === 1) {
+    r.appendChild(el('span', 'tag', '<' + info.name));
+    for (const [k, v] of info.attrs || []) {
+      r.appendChild(document.createTextNode(' '));
+      r.appendChild(el('span', 'an', k));
+      if (v !== '') { r.appendChild(document.createTextNode('=')); r.appendChild(el('span', 'av', '"' + (v.length > 300 ? v.slice(0, 300) + '…' : v) + '"')); }
+    }
+    r.appendChild(el('span', 'tag', '>'));
+    if (!open) {
+      if (info.inlineText !== undefined) { r.appendChild(el('span', 'txt', info.inlineText)); r.appendChild(el('span', 'tag', '</' + info.name + '>')); }
+      else if (info.n) { r.appendChild(el('span', 'dt', '…')); r.appendChild(el('span', 'tag', '</' + info.name + '>')); }
+      else if (!/^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/.test(info.name)) r.appendChild(el('span', 'tag', '</' + info.name + '>'));
+    }
+  } else if (info.type === 3 || info.type === 4) r.appendChild(el('span', 'txt', '"' + info.text + '"'));
+  else if (info.type === 8) r.appendChild(el('span', 'cmt', '<!--' + info.text + '-->'));
+  else if (info.type === 10) r.appendChild(el('span', 'dt', '<!DOCTYPE ' + info.text + '>'));
+  else if (info.type === 7) r.appendChild(el('span', 'cmt', '<?' + info.name + ' ' + info.text + '?>'));
+  else r.appendChild(el('span', 'dt', info.name));
+  return r;
+}
+function renderNode(info, depth) {
+  const box = el('div');
+  const st = { info, depth, box, open: false, loaded: false, kids: null, row: null, close: null };
+  rows.set(info.id, st);
+  st.row = rowLabel(info, false);
+  st.row.style.paddingLeft = (depth * 14 + 4) + 'px';
+  box.appendChild(st.row);
+  return box;
+}
+function refreshRow(st) {
+  const r = rowLabel(st.info, st.open);
+  r.style.paddingLeft = (st.depth * 14 + 4) + 'px';
+  if (selected === st.info.id) r.classList.add('sel');
+  st.box.replaceChild(r, st.row);
+  st.row = r;
+}
+async function expand(id, open) {
+  const st = rows.get(id);
+  if (!st || !st.info.n) return;
+  if (open === st.open) return;
+  st.open = open;
+  if (open) {
+    if (!st.loaded) {
+      const res = await call('children', { node: id });
+      st.kids = el('div');
+      for (const k of res.nodes || []) st.kids.appendChild(renderNode(k, st.depth + 1));
+      if (st.info.type === 1) { st.close = el('div', 'row'); st.close.style.paddingLeft = (st.depth * 14 + 16) + 'px'; st.close.appendChild(el('span', 'tag', '</' + st.info.name + '>')); }
+      st.loaded = true;
+    }
+    st.box.appendChild(st.kids);
+    if (st.close) st.box.appendChild(st.close);
+  } else {
+    if (st.kids && st.kids.parentNode) st.box.removeChild(st.kids);
+    if (st.close && st.close.parentNode) st.box.removeChild(st.close);
+  }
+  refreshRow(st);
+}
+async function reloadChildren(id) {
+  const st = rows.get(id);
+  if (!st) return;
+  const info = await call('node', { node: id });
+  if (info.error) return;
+  const wasOpen = st.open;
+  if (st.kids && st.kids.parentNode) st.box.removeChild(st.kids);
+  if (st.close && st.close.parentNode) st.box.removeChild(st.close);
+  st.info = info; st.loaded = false; st.open = false; st.kids = null;
+  refreshRow(st);
+  if (wasOpen) await expand(id, true);
+}
+async function loadTree() {
+  const tree = $('#tree');
+  tree.textContent = '';
+  rows.clear();
+  const res = await call('children', { node: 0 });
+  if (res.error) { tree.appendChild(el('div', 'empty', res.error)); return; }
+  for (const k of res.nodes || []) tree.appendChild(renderNode(k, 0));
+  const html = (res.nodes || []).find(n => n.type === 1);
+  if (html) {
+    await expand(html.id, true);
+    const hs = rows.get(html.id);
+    for (const c of (hs && hs.kids ? Array.from(hs.kids.children) : [])) { const id = +c.firstChild.dataset.id; const s = rows.get(id); if (s && s.info.name === 'body') { await expand(id, true); select(id, false); } }
+  }
+}
+async function revealNode(id) {
+  const res = await call('path', { node: id });
+  if (!res.path) return;
+  for (const a of res.path.slice(0, -1)) { if (!rows.has(a)) { if (a === 0) continue; break; } await expand(a, true); }
+  if (rows.has(id)) { select(id, true); const st = rows.get(id); scrollRowIntoView(st.row); }
+}
+function scrollRowIntoView(r) {
+  const tree = $('#tree');
+  const top = r.offsetTop - tree.offsetTop;
+  if (top < tree.scrollTop || top > tree.scrollTop + tree.clientHeight - 20) tree.scrollTop = Math.max(0, top - tree.clientHeight / 3);
+}
+function select(id, fromUser) {
+  if (selected !== null && rows.has(selected)) rows.get(selected).row.classList.remove('sel');
+  selected = id;
+  const st = rows.get(id);
+  if (st) st.row.classList.add('sel');
+  call('select', { node: id });
+  updateCrumbs(id);
+  loadSide();
+  if (fromUser) call('scrollIntoView', { node: id });
+}
+async function updateCrumbs(id) {
+  const res = await call('path', { node: id });
+  const c = $('#crumbs');
+  c.textContent = '';
+  for (const n of (res.path || []).slice(1)) {
+    const st = rows.get(n);
+    if (!st || st.info.type !== 1) continue;
+    let label = st.info.name;
+    for (const [k, v] of st.info.attrs || []) { if (k === 'id' && v) label += '#' + v; if (k === 'class' && v.trim()) label += '.' + v.trim().split(/\s+/).slice(0, 2).join('.'); }
+    const s = el('span', '', label);
+    s.addEventListener('click', () => { select(n, true); scrollRowIntoView(rows.get(n).row); });
+    s.addEventListener('mouseenter', () => call('highlight', { node: n }));
+    c.appendChild(s);
+  }
+}
+$('#tree').addEventListener('click', (e) => {
+  const r = e.target.closest('.row'); if (!r || !r.dataset.id) return;
+  const id = +r.dataset.id;
+  if (e.target.classList.contains('tw')) { const st = rows.get(id); expand(id, !(st && st.open)); return; }
+  select(id, true);
+});
+$('#tree').addEventListener('dblclick', (e) => {
+  const r = e.target.closest('.row'); if (!r || !r.dataset.id) return;
+  const id = +r.dataset.id; const st = rows.get(id); if (st) expand(id, !st.open);
+});
+let lastHover = null;
+$('#tree').addEventListener('mousemove', (e) => {
+  const r = e.target.closest('.row'); const id = r && r.dataset.id ? +r.dataset.id : null;
+  if (id !== lastHover) { lastHover = id; call('highlight', { node: id }); }
+});
+$('#tree').addEventListener('mouseleave', () => { lastHover = null; call('highlight', { node: null }); });
+document.addEventListener('keydown', async (e) => {
+  if (panel !== 'elements' || selected === null || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))) return;
+  const st = rows.get(selected); if (!st) return;
+  const visible = Array.from(document.querySelectorAll('#tree .row[data-id]'));
+  const i = visible.indexOf(st.row);
+  if (e.key === 'ArrowDown' && i + 1 < visible.length) { select(+visible[i + 1].dataset.id, true); scrollRowIntoView(visible[i + 1]); e.preventDefault(); }
+  else if (e.key === 'ArrowUp' && i > 0) { select(+visible[i - 1].dataset.id, true); scrollRowIntoView(visible[i - 1]); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { await expand(selected, true); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { if (st.open) await expand(selected, false); e.preventDefault(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') {
+    const path = await call('path', { node: selected });
+    const parent = path.path && path.path.length > 1 ? path.path[path.path.length - 2] : null;
+    await call('remove', { node: selected });
+    if (parent !== null) { await reloadChildren(parent); select(parent, false); }
+    e.preventDefault();
+  }
+});
+// search
+let hits = [], hitIdx = -1;
+async function runSearch() {
+  const q = $('#esearch').value;
+  const res = await call('search', { query: q });
+  hits = res.nodes || []; hitIdx = -1;
+  $('#ehits').textContent = q ? (hits.length ? '0 of ' + hits.length : 'no matches') : '';
+  if (hits.length) nextHit(1);
+}
+async function nextHit(d) {
+  if (!hits.length) return;
+  hitIdx = (hitIdx + d + hits.length) % hits.length;
+  $('#ehits').textContent = (hitIdx + 1) + ' of ' + hits.length;
+  await revealNode(hits[hitIdx]);
+}
+$('#esearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') { if (hits.length && hitIdx >= 0) nextHit(e.shiftKey ? -1 : 1); else runSearch(); } });
+$('#esearch').addEventListener('input', () => { hits = []; hitIdx = -1; $('#ehits').textContent = ''; });
+$('#enext').addEventListener('click', () => hits.length ? nextHit(1) : runSearch());
+$('#eprev').addEventListener('click', () => nextHit(-1));
+// side panel
+let side = 'styles';
+for (const b of document.querySelectorAll('.tab2')) b.addEventListener('click', () => { side = b.dataset.s; for (const x of document.querySelectorAll('.tab2')) x.classList.toggle('on', x === b); for (const s of ['styles', 'computed', 'html']) $('#side-' + s).style.display = s === side ? '' : 'none'; loadSide(); });
+function fileName(u) { try { const x = new URL(u); const p = x.pathname.split('/').filter(Boolean); return p.length ? decodeURIComponent(p[p.length - 1]) : x.host; } catch (_) { return u; } }
+async function loadSide() {
+  if (selected === null) return;
+  const id = selected;
+  if (side === 'styles') {
+    const res = await call('matchedRules', { node: id });
+    if (id !== selected) return;
+    const box = $('#side-styles'); box.textContent = '';
+    const seen = new Set(), seenImp = new Set();
+    const mark = (decls) => decls.map(([k, v, imp]) => { let over; if (imp) { over = seenImp.has(k); seenImp.add(k); } else { over = seen.has(k) || seenImp.has(k); } seen.add(k); return [k, v, imp, over]; });
+    const inline = (res.inline || '').split(';').map(s => s.trim()).filter(Boolean).map(s => { const i = s.indexOf(':'); return [s.slice(0, i).trim().toLowerCase(), s.slice(i + 1).trim().replace(/\s*!important$/i, ''), /!important$/i.test(s)]; });
+    const blocks = [{ selector: 'element.style', decls: inline, origin: 'inline', source: '' }].concat(res.rules || []);
+    // Important declarations win across rules; plain ones by order (highest first).
+    const marked = blocks.map(b => ({ b, d: null }));
+    for (const m of marked) for (const [k, , imp] of m.b.decls) if (imp) {}
+    for (const m of marked) m.d = mark(m.b.decls);
+    for (const { b, d } of marked) {
+      const r = el('div', 'rule');
+      if (b.source) r.appendChild(el('span', 'src', b.origin === 'user-agent' ? 'user agent stylesheet' : b.origin === 'user' ? 'extension' : fileName(b.source)));
+      for (const m of b.media || []) r.appendChild(el('div', 'media', '@media ' + m));
+      r.appendChild(el('span', 'sel' + (b.origin === 'user-agent' ? ' ua' : ''), b.selector + ' {'));
+      for (const [k, v, imp, over] of d) {
+        const dl = el('div', 'decl' + (over ? ' over' : ''));
+        dl.appendChild(el('span', 'k', k)); dl.appendChild(document.createTextNode(': ' + v + (imp ? ' !important' : '') + ';'));
+        r.appendChild(dl);
+      }
+      r.appendChild(el('div', '', '}'));
+      box.appendChild(r);
+    }
+    if (res.error) box.appendChild(el('div', 'empty', res.error));
+  } else if (side === 'computed') {
+    const res = await call('styles', { node: id });
+    if (id !== selected) return;
+    const box = $('#side-computed'); box.textContent = '';
+    if (res.box) box.appendChild(boxModel(res.box));
+    for (const [k, v] of res.computed || []) { const r = el('div', 'comp'); r.appendChild(el('span', 'k', k)); r.appendChild(el('span', 'v', v)); box.appendChild(r); }
+    if (res.error) box.appendChild(el('div', 'empty', res.error));
+  } else {
+    const res = await call('outerHTML', { node: id });
+    if (id !== selected) return;
+    const box = $('#side-html'); box.textContent = '';
+    const ta = el('textarea', 'edit'); ta.value = res.html || ''; ta.spellcheck = false;
+    const ap = el('button', 'btn', 'Apply');
+    ap.addEventListener('click', async () => { const r = await call('setOuterHTML', { node: id, html: ta.value }); if (r.parent !== null && r.parent !== undefined) { await reloadChildren(r.parent); select(r.parent, false); } });
+    box.appendChild(ta); box.appendChild(el('div', '', '')); box.appendChild(ap);
+  }
+}
+function boxModel(b) {
+  const f = (x) => { const r = Math.round(x * 100) / 100; return r === 0 ? '-' : String(r); };
+  const layer = (cls, label, v, inner) => {
+    const d = el('div', cls);
+    d.appendChild(el('span', 'lbl', label));
+    d.appendChild(el('span', 't', f(v[0])));
+    const mid = el('div', 'mid'); mid.style.border = '0'; mid.style.padding = '0';
+    mid.appendChild(el('span', '', f(v[3]))); mid.appendChild(inner); mid.appendChild(el('span', '', f(v[1])));
+    d.appendChild(mid);
+    d.appendChild(el('span', 'bt', f(v[2])));
+    return d;
+  };
+  const cw = Math.max(0, b.w - b.border[1] - b.border[3] - b.padding[1] - b.padding[3]);
+  const ch = Math.max(0, b.h - b.border[0] - b.border[2] - b.padding[0] - b.padding[2]);
+  const c = el('div', 'c', f(cw) + ' × ' + f(ch)); c.style.flex = '1';
+  const p = layer('p', 'padding', b.padding, c); p.style.flex = '1';
+  const bd = layer('b', 'border', b.border, p); bd.style.flex = '1';
+  const m = layer('m', 'margin', b.margin, bd);
+  const wrapD = el('div'); wrapD.id = 'boxm'; wrapD.style.border = '0'; wrapD.appendChild(m);
+  return wrapD;
+}
+
+// ---------------------------------------------------------------- console
+const cmdHistory = []; let histIdx = 0;
+const logBox = $('#log');
+let atEnd = true;
+logBox.addEventListener('scroll', () => { atEnd = logBox.scrollTop + logBox.clientHeight >= logBox.scrollHeight - 8; });
+function scrollLogEnd() { logBox.scrollTop = logBox.scrollHeight; }
+function valueEl(v, top) {
+  if (!v || typeof v !== 'object') return el('span', '', String(v));
+  if (v.t === 'string') return el('span', 'v-string' + (top ? ' top' : ''), top ? v.d : JSON.stringify(v.d));
+  if (v.t === 'node') {
+    const s = el('span', 'v-node', v.d);
+    s.addEventListener('click', () => { show('elements'); revealNode(v.node); });
+    s.addEventListener('mouseenter', () => call('highlight', { node: v.node }));
+    s.addEventListener('mouseleave', () => call('highlight', { node: null }));
+    return s;
+  }
+  if (v.t === 'error') return el('span', 'v-string top', v.d);
+  if (v.t === 'object' || v.t === 'array' || v.t === 'function' || v.t === 'regexp') {
+    if (v.t === 'regexp' && !v.id) return el('span', 'v-regexp', v.d);
+    const o = el('span', 'obj');
+    const head = el('span', 'head');
+    head.appendChild(el('span', 'tw', '▶'));
+    let label = v.d;
+    if (v.p && v.p.length) {
+      const inner = v.p.map(([k, x]) => (v.t === 'array' ? '' : (k ? k + ': ' : '')) + x).join(', ') + (v.more ? ', …' : '');
+      label = (v.t === 'array' ? (v.d.startsWith('(') ? v.d : v.d) + ' [' : (v.d === 'Object' ? '' : v.d + ' ') + '{') + inner + (v.t === 'array' ? ']' : '}');
+    } else if (v.t === 'object' && v.d === 'Object') label = '{}';
+    head.appendChild(el('span', v.t === 'function' ? 'v-function' : (v.t === 'regexp' ? 'v-regexp' : ''), label));
+    o.appendChild(head);
+    const kids = el('div', 'kids');
+    o.appendChild(kids);
+    let loaded = false;
+    head.addEventListener('click', async () => {
+      const open = !o.classList.contains('open');
+      o.classList.toggle('open', open);
+      head.firstChild.textContent = open ? '▼' : '▶';
+      if (open && !loaded && v.id) {
+        loaded = true;
+        if (v.t === 'function' && v.src) { const pre = el('div', 'v-function', v.src); pre.style.whiteSpace = 'pre-wrap'; kids.appendChild(pre); }
+        const res = await call('props', { id: v.id });
+        for (const [k, x] of res.props || []) {
+          const row = el('div', 'prop');
+          row.appendChild(el('span', 'k' + (/^\[\[/.test(k) ? ' int' : ''), k));
+          row.appendChild(document.createTextNode(': '));
+          row.appendChild(valueEl(x, false));
+          kids.appendChild(row);
+        }
+        if (!(res.props || []).length) kids.appendChild(el('div', 'dt', 'No properties'));
+      }
+    });
+    return o;
+  }
+  return el('span', 'v-' + v.t, v.d);
+}
+function addMsg(m) {
+  if (m.level === 'clear') { logBox.textContent = ''; addMsg({ level: 'info', text: 'Console was cleared', time: m.time }); return; }
+  const cls = m.level === 'error' ? 'error' : m.level === 'warn' ? 'warn' : m.level === 'info' ? 'info' : m.level === 'input' ? 'input' : m.level === 'result' ? 'result' : m.level === 'group' ? 'group' : '';
+  const d = el('div', 'msg ' + cls);
+  d.dataset.level = m.level;
+  if (m.time && m.level !== 'input' && m.level !== 'result') { const t = new Date(m.time); d.appendChild(el('span', 'time', t.toTimeString().slice(0, 8))); }
+  let args = null;
+  if (m.args) { try { args = JSON.parse(m.args); } catch (_) {} }
+  if (m.value) args = [m.value];
+  if (args && args.length) {
+    args.forEach((a, i) => { if (i) d.appendChild(document.createTextNode(' ')); d.appendChild(valueEl(a, true)); });
+  } else d.appendChild(document.createTextNode(m.text));
+  applyFilter(d);
+  logBox.appendChild(d);
+  while (logBox.childNodes.length > 3000) logBox.removeChild(logBox.firstChild);
+  if (atEnd) scrollLogEnd();
+}
+function applyFilter(d) {
+  const lv = $('#clevel').value, q = $('#cfilter').value.toLowerCase();
+  const level = d.dataset.level;
+  let ok = lv === 'all' || level === lv || (lv === 'info' && (level === 'info' || level === 'log'));
+  if (ok && q) ok = d.textContent.toLowerCase().indexOf(q) >= 0;
+  d.style.display = ok ? '' : 'none';
+}
+$('#clevel').addEventListener('change', () => { for (const d of logBox.children) applyFilter(d); });
+$('#cfilter').addEventListener('input', () => { for (const d of logBox.children) applyFilter(d); });
+$('#cclear').addEventListener('click', () => { logBox.textContent = ''; call('releaseAll'); });
+$('#cin').addEventListener('keydown', async (e) => {
+  const inp = e.target;
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    const expr = inp.value;
+    if (!expr.trim()) return;
+    cmdHistory.push(expr); histIdx = cmdHistory.length;
+    inp.value = '';
+    atEnd = true;
+    addMsg({ level: 'input', text: expr });
+    const res = await call('evaluate', { expr });
+    if (res.exception) addMsg({ level: 'error', text: 'Uncaught ' + res.exception.d, value: res.exception.t === 'error' ? { t: 'error', d: 'Uncaught ' + res.exception.d } : res.exception });
+    else if (res.error) addMsg({ level: 'error', text: res.error });
+    else addMsg({ level: 'result', text: '', value: res.result });
+  } else if (e.key === 'ArrowUp') { if (histIdx > 0) { histIdx--; inp.value = cmdHistory[histIdx]; } e.preventDefault(); }
+  else if (e.key === 'ArrowDown') { if (histIdx < cmdHistory.length) { histIdx++; inp.value = cmdHistory[histIdx] || ''; } e.preventDefault(); }
+  else if (e.key === 'l' && e.ctrlKey) { logBox.textContent = ''; e.preventDefault(); }
+});
+
+// ---------------------------------------------------------------- sources
+let srcList = [], srcSel = null, srcText = '', srcLines = [], prettyOn = false;
+async function loadSources() {
+  const res = await call('sources');
+  srcList = [{ id: 'document', name: res.url || '(document)', kind: 'doc', size: 0 }].concat(res.sources || []);
+  const box = $('#files'); box.textContent = '';
+  for (const s of srcList) {
+    const d = el('div', 'file' + (s.id === srcSel ? ' sel' : ''));
+    d.appendChild(el('span', 'k ' + (s.kind === 'style' ? 'css' : s.kind === 'doc' ? 'doc' : ''), s.kind === 'style' ? '#' : s.kind === 'doc' ? '◧' : 'JS'));
+    const label = s.kind === 'doc' ? '(page) ' + fileName(s.name) : /\(inline script/.test(s.name) ? s.name.replace(/^.*\(inline/, '(inline') : fileName(s.name);
+    d.appendChild(document.createTextNode(' ' + label));
+    d.title = s.name + (s.size ? ' — ' + fmtSize(s.size) : '');
+    d.addEventListener('click', () => openSource(s));
+    box.appendChild(d);
+  }
+  if (!srcSel && srcList.length) openSource(srcList[0]);
+}
+async function openSource(s) {
+  srcSel = s.id;
+  for (const d of document.querySelectorAll('.file')) d.classList.remove('sel');
+  const idx = srcList.indexOf(s); const fd = document.querySelectorAll('.file')[idx]; if (fd) fd.classList.add('sel');
+  $('#srcname').textContent = s.name;
+  const res = await call('source', { id: s.id });
+  srcText = res.text || '';
+  prettyOn = false;
+  setCode(srcText);
+}
+function setCode(text) {
+  srcLines = text.split('\n');
+  const code = $('#code');
+  $('#codeinner').style.height = (srcLines.length * 16 + 20) + 'px';
+  code.scrollTop = 0;
+  drawCode();
+}
+const KW = /\b(var|let|const|function|return|if|else|for|while|do|switch|case|break|continue|new|this|typeof|instanceof|in|of|class|extends|super|import|export|from|default|try|catch|finally|throw|async|await|yield|null|undefined|true|false|void|delete)\b/g;
+function highlightLine(t) {
+  const frag = document.createDocumentFragment();
+  if (t.length > 4000) t = t.slice(0, 4000) + ' …';
+  const re = /(\/\/.*$|\/\*.*?\*\/|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\b\d+(?:\.\d+)?\b|\b(?:var|let|const|function|return|if|else|for|while|do|switch|case|break|continue|new|this|typeof|instanceof|in|of|class|extends|super|import|export|from|default|try|catch|finally|throw|async|await|yield|null|undefined|true|false|void|delete)\b)/g;
+  let last = 0, m;
+  while ((m = re.exec(t))) {
+    if (m.index > last) frag.appendChild(document.createTextNode(t.slice(last, m.index)));
+    const s = m[0];
+    const cls = s.startsWith('//') || s.startsWith('/*') ? 'com' : /^["'`]/.test(s) ? 'str' : /^\d/.test(s) ? 'num' : 'kw';
+    frag.appendChild(el('span', cls, s));
+    last = m.index + s.length;
+  }
+  if (last < t.length) frag.appendChild(document.createTextNode(t.slice(last)));
+  return frag;
+}
+function drawCode() {
+  const code = $('#code');
+  const first = Math.max(0, Math.floor(code.scrollTop / 16) - 20);
+  const count = Math.ceil((code.clientHeight || 600) / 16) + 40;
+  const win = $('#codewin');
+  win.style.top = (first * 16) + 'px';
+  win.textContent = '';
+  const isCss = /\.css(\?|$)/.test($('#srcname').textContent);
+  for (let i = first; i < Math.min(srcLines.length, first + count); i++) {
+    const d = el('div', 'ln');
+    d.appendChild(el('span', 'no', String(i + 1)));
+    d.appendChild(isCss ? document.createTextNode(srcLines[i].slice(0, 4000)) : highlightLine(srcLines[i]));
+    win.appendChild(d);
+  }
+}
+let drawPending = false;
+$('#code').addEventListener('scroll', () => { if (!drawPending) { drawPending = true; requestAnimationFrame(() => { drawPending = false; drawCode(); }); } });
+$('#pretty').addEventListener('click', () => { prettyOn = !prettyOn; setCode(prettyOn ? pretty(srcText) : srcText); });
+// A small formatter for minified code: breaks after ; { } and indents by braces.
+function pretty(src) {
+  if (/\.css(\?|$)/.test($('#srcname').textContent)) return src.replace(/\s*\{\s*/g, ' {\n  ').replace(/;\s*/g, ';\n  ').replace(/\s*\}\s*/g, '\n}\n').replace(/\n  \n\}/g, '\n}');
+  let out = '', ind = 0, i = 0, line = '';
+  const n = src.length;
+  const nl = () => { out += '  '.repeat(Math.max(0, ind)) + line.trim() + '\n'; line = ''; };
+  let paren = 0;
+  while (i < n) {
+    const c = src[i];
+    if (c === '"' || c === "'" || c === '`') { let j = i + 1; while (j < n && src[j] !== c) { if (src[j] === '\\') j++; j++; } line += src.slice(i, j + 1); i = j + 1; continue; }
+    if (c === '/' && src[i + 1] === '/') { const j = src.indexOf('\n', i); const e = j < 0 ? n : j; line += src.slice(i, e); i = e; nl(); continue; }
+    if (c === '/' && src[i + 1] === '*') { const j = src.indexOf('*/', i + 2); const e = j < 0 ? n : j + 2; line += src.slice(i, e); i = e; continue; }
+    if (c === '\n' || c === '\r') { if (line.trim()) nl(); i++; continue; }
+    if (c === '(') paren++;
+    if (c === ')') paren--;
+    if (c === '{') { line += ' {'; nl(); ind++; i++; continue; }
+    if (c === '}') { if (line.trim()) nl(); ind--; line = '}'; i++; if (src[i] === ';' || src[i] === ',' || src[i] === ')') { continue; } nl(); continue; }
+    if (c === ';' && paren <= 0) { line += ';'; nl(); i++; continue; }
+    line += c; i++;
+  }
+  if (line.trim()) nl();
+  return out;
+}
+
+// ---------------------------------------------------------------- network
+let netReqs = [], netSel = -1;
+function fmtSize(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : b >= 1024 ? (b / 1024).toFixed(1) + ' kB' : b + ' B'; }
+async function loadNetwork() {
+  const res = await call('network');
+  netReqs = res.requests || [];
+  drawNetwork(res.blocked || 0);
+}
+function drawNetwork(blocked) {
+  const q = $('#nfilter').value.toLowerCase(), kind = $('#nkind').value;
+  const list = netReqs.filter(r => (!q || r.url.toLowerCase().indexOf(q) >= 0) && (!kind || r.kind === kind));
+  const t0 = netReqs.length ? Math.min(...netReqs.map(r => r.start)) : 0;
+  const t1 = netReqs.length ? Math.max(...netReqs.map(r => r.start + r.ms)) : 1;
+  const span = Math.max(1, t1 - t0);
+  const tbl = el('table');
+  const head = el('tr');
+  for (const [h, w] of [['Name', '34%'], ['Status', '9%'], ['Type', '10%'], ['Size', '10%'], ['Time', '9%'], ['Waterfall', '28%']]) { const th = el('th', '', h); th.style.width = w; head.appendChild(th); }
+  tbl.appendChild(head);
+  list.forEach((r, i) => {
+    const tr = el('tr', (r.error || r.status >= 400 ? 'fail' : '') + (i === netSel ? ' sel' : ''));
+    const name = el('td', '', fileName(r.url) + (r.url.indexOf('?') >= 0 ? '?' + r.url.split('?')[1] : '')); name.title = r.url;
+    tr.appendChild(name);
+    tr.appendChild(el('td', '', r.error ? (/BLOCKED_BY_CLIENT/.test(r.error) ? '(blocked)' : '(failed)') : String(r.status)));
+    tr.appendChild(el('td', '', r.kind));
+    tr.appendChild(el('td', '', r.cached ? '(cache)' : fmtSize(r.size)));
+    tr.appendChild(el('td', '', Math.round(r.ms) + ' ms'));
+    const wf = el('td'); const bar = el('div', 'wf'); const b = el('i'); b.style.left = ((r.start - t0) / span * 100) + '%'; b.style.width = Math.max(0.5, r.ms / span * 100) + '%'; if (r.error) b.style.background = '#d93025'; bar.appendChild(b); wf.appendChild(bar); tr.appendChild(wf);
+    tr.addEventListener('click', () => { netSel = i; showNetDetail(r); for (const x of tbl.querySelectorAll('tr')) x.classList.remove('sel'); tr.classList.add('sel'); });
+    tbl.appendChild(tr);
+  });
+  const box = $('#nettable'); const st = box.scrollTop; box.textContent = ''; box.appendChild(tbl); box.scrollTop = st;
+  const total = netReqs.reduce((a, r) => a + r.size, 0);
+  $('#netfoot').textContent = netReqs.length + ' requests · ' + fmtSize(total) + ' · finished in ' + Math.round(span) + ' ms' + (blocked ? ' · ' + blocked + ' blocked by HeronBlock' : '');
+}
+function showNetDetail(r) {
+  const d = $('#netdetail'); d.style.display = 'block'; d.textContent = '';
+  for (const [k, v] of [['URL', r.url], ['Method', r.method], ['Status', r.error ? r.error : String(r.status)], ['Type', r.kind], ['MIME type', r.mime || '—'], ['Size', fmtSize(r.size) + (r.cached ? ' (from cache)' : '')], ['Time', r.ms.toFixed(1) + ' ms']]) {
+    const row = el('div'); row.appendChild(el('b', '', k)); row.appendChild(document.createTextNode(v)); d.appendChild(row);
+  }
+}
+$('#nfilter').addEventListener('input', () => drawNetwork(0));
+$('#nkind').addEventListener('change', () => drawNetwork(0));
+$('#nrefresh').addEventListener('click', loadNetwork);
+setInterval(() => { if (panel === 'network') loadNetwork(); }, 2000);
+
+// ---------------------------------------------------------------- events
+function onEvent(ev) {
+  if (ev.type === 'console') addMsg(ev.msg);
+  else if (ev.type === 'picked') { picking = false; $('#pick').classList.remove('on'); show('elements'); revealNode(ev.node); }
+  else if (ev.type === 'navigated') { $('#pageurl').textContent = ev.url; logBox.appendChild(el('div', 'msg info', 'Navigated to ' + ev.url)); srcSel = null; selected = null; setTimeout(() => { loadTree(); if (panel === 'sources') loadSources(); }, 600); }
+}
+async function start() {
+  const res = await call('attach');
+  if (res.error) { $('#tree').appendChild(el('div', 'empty', res.error)); return; }
+  $('#pageurl').textContent = res.url;
+  for (const m of res.console || []) addMsg(m);
+  if (res.js === false) addMsg({ level: 'warn', text: 'JavaScript is turned off in this tab: the console and DOM tree are unavailable.' });
+  await loadTree();
+  const h = location.hash.slice(1);
+  if (h === 'console') show('console');
+  else if (h === 'pick') setPicking(true);
+  else if (/^node=\d+$/.test(h)) revealNode(+h.slice(5));
+  else if (/^at=[\d.]+,[\d.]+$/.test(h)) { const [x, y] = h.slice(3).split(',').map(Number); const r = await call('inspectAt', { x, y }); if (r.node !== undefined && r.node !== null) revealNode(r.node); }
+}
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) { setPicking(!picking); e.preventDefault(); }
+});
+start();
+</script>
+</body></html>

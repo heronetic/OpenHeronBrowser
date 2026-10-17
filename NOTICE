@@ -1,0 +1,8 @@
+OpenHeronBrowser
+Copyright 2026 Marissa Tanner, Heronetic
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+The crates/ohb-crypto crate is licensed under the MIT License
+(see crates/ohb-crypto/LICENSE-MIT).
+It includes third-party software under its own licenses; see
+THIRD_PARTY_NOTICES.md.

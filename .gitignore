@@ -1,0 +1,15 @@
+target/
+*.png
+dist/
+.intentionally-empty-file.o
+target-fast/
+compare-out/
+target-dbg/
+__pycache__/
+target-fat/
+target-prof/
+
+# Images used by the README
+!docs/*.png
+!docs/**/*.png
+target-arm/

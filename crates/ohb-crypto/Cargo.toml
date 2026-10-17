@@ -1,0 +1,25 @@
+[package]
+name = "ohb-crypto"
+version = "0.1.0"
+edition = "2021"
+description = "Stateless Web Crypto (SubtleCrypto) primitives for OpenHeronBrowser"
+license = "MIT"
+publish = false
+
+# Builds standalone; the browser crate depends on it by path.
+[workspace]
+
+[dependencies]
+aes = "0.8"
+ghash = "0.5"
+hmac = "0.12"
+sha1 = { version = "0.10", features = ["oid"] }
+sha2 = { version = "0.10", features = ["oid"] }
+hkdf = "0.12"
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+rsa = "0.9"
+p256 = { version = "0.13", features = ["ecdsa", "ecdh", "pkcs8"] }
+p384 = { version = "0.13", features = ["ecdsa", "ecdh", "pkcs8"] }
+p521 = { version = "0.13", features = ["ecdsa", "ecdh", "pkcs8"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+base64ct = { version = "1.6", features = ["alloc"] }
